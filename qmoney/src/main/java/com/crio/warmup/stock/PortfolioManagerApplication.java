@@ -259,7 +259,7 @@ public class PortfolioManagerApplication {
 
         // int total_num_years = Period.between(trade.getPurchaseDate(), endDate).getYears();
         Double total_num_years =
-            (double) ChronoUnit.DAYS.between(trade.getPurchaseDate(), endDate) / 365;
+            (double) ChronoUnit.DAYS.between(trade.getPurchaseDate(), endDate) / 365.25j;
     
         double annualized_returns = Math.pow(1 + totalReturn, (1 / total_num_years)) - 1;
     
