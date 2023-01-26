@@ -75,8 +75,7 @@ class ModuleThreeTest {
     String filename = "assessments/trades_old.json";
 
     //when
-    List<AnnualizedReturn> result = PortfolioManagerApplication
-        .mainCalculateSingleReturn(new String[]{filename, "2019-12-20"});
+    List<AnnualizedReturn> result = PortfolioManagerApplication.mainCalculateSingleReturn(new String[]{filename, "2019-12-20"});
 
     //then
     List<String> symbols = result.stream().map(AnnualizedReturn::getSymbol)

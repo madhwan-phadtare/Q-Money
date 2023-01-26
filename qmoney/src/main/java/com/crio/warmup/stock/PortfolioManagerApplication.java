@@ -4,6 +4,8 @@ package com.crio.warmup.stock;
 
 import com.crio.warmup.stock.dto.*;
 import com.crio.warmup.stock.log.UncaughtExceptionHandler;
+import com.fasterxml.jackson.core.exc.StreamReadException;
+import com.fasterxml.jackson.databind.DatabindException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.io.File;
@@ -21,6 +23,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 // import java.util.stream.Collectors;
 // import java.util.stream.Stream;
 import org.apache.logging.log4j.ThreadContext;
@@ -221,9 +224,7 @@ public class PortfolioManagerApplication {
     List<Candle> res = Arrays.asList(candles);
     return res;
   }
-  // TODO:
-  //  Ensure all tests are passing using below command
-  //  ./gradlew test --tests ModuleThreeRefactorTest
+
   static Double getOpeningPriceOnStartDate(List<Candle> candles) {
      return candles.get(0).getOpen();
   }
@@ -233,25 +234,44 @@ public class PortfolioManagerApplication {
      return candles.get(candles.size()-1).getClose();
   }
 
-
-  
-
   public static List<AnnualizedReturn> mainCalculateSingleReturn(String[] args)
-      throws IOException, URISyntaxException {
-     return Collections.emptyList();
-  }
+  throws IOException, URISyntaxException {
 
-  // TODO: CRIO_TASK_MODULE_CALCULATIONS
-  //  Return the populated list of AnnualizedReturn for all stocks.
-  //  Annualized returns should be calculated in two steps:
-  //   1. Calculate totalReturn = (sell_value - buy_value) / buy_value.
-  //      1.1 Store the same as totalReturns
-  //   2. Calculate extrapolated annualized returns by scaling the same in years span.
-  //      The formula is:
-  //      annualized_returns = (1 + total_returns) ^ (1 / total_num_years) - 1
-  //      2.1 Store the same as annualized_returns
-  //  Test the same using below specified command. The build should be successful.
-  //     ./gradlew test --tests PortfolioManagerApplicationTest.testCalculateAnnualizedReturn
+    PortfolioTrade[] trades = fetchPortfolioTrade(args[0]);
+    String token = getToken();
+    LocalDate endDate = LocalDate.parse(args[1]);
+    List<AnnualizedReturn> annualReturns = new ArrayList<AnnualizedReturn>();
+
+    for (PortfolioTrade trade : trades) {
+
+      List<Candle> candles = fetchCandles(trade, endDate, token);
+      AnnualizedReturn ret = calculateAnnualizedReturns(endDate, trade,
+          getOpeningPriceOnStartDate(candles), getClosingPriceOnEndDate(candles));
+
+      if (ret != null) {
+        annualReturns.add(ret);
+      }
+
+    }
+
+    List<AnnualizedReturn> fAnnualizedReturns = annualReturns.stream()
+        .sorted((r1, r2) -> r1.getAnnualizedReturn().compareTo(r2.getAnnualizedReturn()))
+        .collect(Collectors.toList());;
+
+    Collections.reverse(fAnnualizedReturns);
+
+    return fAnnualizedReturns;
+  }
+  public static PortfolioTrade[] fetchPortfolioTrade(String fileName)
+      throws URISyntaxException, StreamReadException, DatabindException, IOException {
+
+    File file = resolveFileFromResources(fileName);
+    ObjectMapper ob = getObjectMapper();
+
+    PortfolioTrade[] trades = ob.readValue(file, PortfolioTrade[].class);
+
+    return trades;
+  }
 
   public static AnnualizedReturn calculateAnnualizedReturns(LocalDate endDate,
       PortfolioTrade trade, Double buyPrice, Double sellPrice) {
@@ -267,18 +287,6 @@ public class PortfolioManagerApplication {
     
       // return new AnnualizedReturn("", 0.0, 0.0);
   }
-
-
-
-
-
-
-
-
-
-
-
-
 
   public static void main(String[] args) throws Exception {
     Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler());
